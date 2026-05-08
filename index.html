@@ -1,0 +1,2390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FIGHT NIGHT LIVE — IGCSE Business Multiplayer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Oswald:wght@300;400;500;600;700&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+:root {
+  --ink: #0a0908;
+  --paper: #f3ead3;
+  --paper-dim: #c9bf9e;
+  --blood: #c1272d;
+  --blood-dark: #6e0e10;
+  --gold: #d4a72c;
+  --gold-bright: #f5cc4a;
+  --steel: #2a2724;
+  --steel-2: #1a1815;
+  --canvas: #14110e;
+  --ok: #2fbf71;
+  --bad: #c1272d;
+  --opt-a: #c1272d;
+  --opt-b: #e85d04;
+  --opt-c: #d4a72c;
+  --opt-d: #0d9488;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Oswald', sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Allow text selection in form fields and code/keys */
+input, .room-code { user-select: text; -webkit-user-select: text; }
+
+/* Grain overlay */
+body::before {
+  content:'';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+::selection { background: var(--gold); color: var(--ink); }
+
+#app { min-height: 100vh; min-height: 100dvh; }
+
+/* ─────────── SHARED ─────────── */
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+}
+
+.btn {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 16px 36px;
+  border: 3px solid var(--gold);
+  background: var(--blood);
+  color: var(--paper);
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 6px 6px 0 var(--gold);
+}
+.btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 var(--gold);
+}
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--gold); }
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: var(--paper-dim);
+  color: var(--paper-dim);
+  box-shadow: none;
+  font-size: 0.95rem;
+  padding: 10px 22px;
+}
+.btn.ghost:hover { border-color: var(--gold); color: var(--gold); transform: none; box-shadow: none; }
+
+.tag {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.title-xl {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(3rem, 11vw, 8rem);
+  line-height: 0.85;
+  text-transform: uppercase;
+  text-shadow: 4px 4px 0 var(--blood-dark);
+}
+.title-xl em { font-style: normal; color: var(--blood); display: inline-block; transform: skewX(-6deg); }
+
+.title-l {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(2.2rem, 7vw, 5rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.help-line {
+  font-family: 'Special Elite', monospace;
+  color: var(--paper-dim);
+  font-size: 0.85rem;
+  margin-top: 16px;
+  max-width: 580px;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOSTING INSTRUCTIONS (shown if file:// protocol)         */
+/* ═══════════════════════════════════════════════════════════ */
+.hosting-screen {
+  text-align: left;
+  align-items: stretch;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.hosting-screen .step {
+  background: var(--steel-2);
+  border-left: 4px solid var(--gold);
+  padding: 18px 24px;
+  margin: 14px 0;
+}
+.hosting-screen .step .step-num {
+  font-family: 'Anton', sans-serif;
+  color: var(--blood);
+  font-size: 1.3rem;
+  margin-right: 12px;
+}
+.hosting-screen a {
+  color: var(--gold-bright);
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOST: LOBBY                                                 */
+/* ═══════════════════════════════════════════════════════════ */
+.lobby {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 40px;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 850px) {
+  .lobby { grid-template-columns: 1fr; }
+}
+
+.qr-box {
+  background: var(--paper);
+  padding: 20px;
+  text-align: center;
+  border: 4px solid var(--gold);
+  box-shadow: 8px 8px 0 var(--blood-dark);
+}
+.qr-box canvas, .qr-box img {
+  max-width: 100%;
+  width: 280px;
+  height: 280px;
+  display: block;
+  margin: 0 auto;
+}
+.qr-status {
+  margin-top: 14px;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.room-code {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.3em;
+  font-size: 1.4rem;
+  color: var(--ink);
+  background: var(--gold-bright);
+  padding: 6px 12px;
+  margin-top: 8px;
+  display: inline-block;
+}
+.qr-instructions {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--gold-bright);
+  font-size: 1.05rem;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.lobby-fighters {
+  background: var(--steel-2);
+  border: 1px solid var(--gold);
+  padding: 20px;
+  min-height: 280px;
+}
+.lobby-fighters h3 {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.6rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.fighter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.fighter-card {
+  background: var(--ink);
+  border: 2px solid var(--corner-color, var(--gold));
+  padding: 12px 14px;
+  text-align: center;
+  animation: slamIn 0.4s both;
+}
+.fighter-card .num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--corner-color);
+}
+.fighter-card .nm {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  color: var(--paper);
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+  word-break: break-word;
+}
+.fighter-card.disconnected {
+  opacity: 0.4;
+  border-style: dashed;
+}
+.fighter-card .joining {
+  color: var(--paper-dim);
+  font-style: italic;
+}
+.empty-roster {
+  font-family: 'Special Elite', monospace;
+  color: var(--paper-dim);
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 30px 0;
+}
+
+@keyframes slamIn {
+  0% { opacity: 0; transform: scale(1.5) rotate(-3deg); filter: blur(8px); }
+  60% { opacity: 1; transform: scale(0.95) rotate(0); filter: blur(0); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOST: ROUND INTRO                                           */
+/* ═══════════════════════════════════════════════════════════ */
+.round-intro-bg {
+  background: radial-gradient(ellipse at center, rgba(193, 39, 45, 0.3) 0%, var(--ink) 70%);
+}
+.round-intro-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+  letter-spacing: 0.5em;
+  color: var(--gold);
+  margin-bottom: 8px;
+  animation: slideInDown 0.7s 0.2s both;
+}
+.round-intro-name {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(3rem, 11vw, 8rem);
+  line-height: 0.85;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--paper);
+  text-shadow: 5px 5px 0 var(--blood-dark);
+  margin-bottom: 24px;
+  animation: slamIn 0.6s 0.5s both;
+}
+.round-intro-tagline {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--gold-bright);
+  font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+  margin-bottom: 60px;
+  transform: rotate(-1deg);
+  animation: fadeIn 0.7s 1.1s both;
+}
+.round-intro-bell {
+  width: 120px; height: 120px;
+  margin-bottom: 30px;
+  animation: bellSwing 1.4s 1.3s ease-out both;
+}
+.bell-svg path { fill: var(--gold); stroke: var(--blood-dark); stroke-width: 2; }
+.bell-svg circle { fill: var(--blood); }
+
+.round-intro-cta { animation: fadeIn 0.7s 2s both; }
+
+@keyframes slideInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bellSwing {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(-25deg); }
+  40% { transform: rotate(20deg); }
+  60% { transform: rotate(-15deg); }
+  80% { transform: rotate(10deg); }
+  100% { transform: rotate(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOST: QUESTION SCREEN                                       */
+/* ═══════════════════════════════════════════════════════════ */
+.q-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.q-topbar {
+  background: var(--canvas);
+  border-bottom: 2px solid var(--gold);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.15em;
+  color: var(--paper-dim);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.q-topbar .round-label { color: var(--gold); }
+.q-topbar .q-counter { color: var(--paper); font-size: 1.05rem; }
+.q-topbar .topbar-actions { display: flex; gap: 8px; }
+
+.q-main {
+  padding: 30px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.q-meta {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  color: var(--blood);
+  margin-bottom: 14px;
+}
+.q-meta.ko { color: var(--gold-bright); }
+
+.q-card {
+  background: var(--steel-2);
+  border: 2px solid var(--gold);
+  padding: 30px 36px;
+  max-width: 1000px;
+  width: 100%;
+  margin-bottom: 22px;
+  position: relative;
+}
+.q-card::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: -8px;
+  right: -8px; bottom: -8px;
+  border: 1px solid rgba(212, 167, 44, 0.25);
+  pointer-events: none;
+}
+.q-text {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--paper);
+  letter-spacing: 0.005em;
+}
+
+.q-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  max-width: 1000px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+.q-option {
+  border: 3px solid var(--opt-color);
+  padding: 18px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--paper);
+  line-height: 1.4;
+  background: rgba(0,0,0,0.3);
+  transition: all 0.3s;
+}
+.q-option .letter {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.6rem;
+  color: var(--opt-color);
+  flex-shrink: 0;
+  width: 32px;
+}
+.q-option.correct {
+  background: rgba(47, 191, 113, 0.25);
+  border-color: var(--ok);
+  animation: pulseGlow 0.8s ease-out;
+}
+.q-option.correct .letter { color: var(--ok); }
+.q-option.dim {
+  opacity: 0.35;
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); box-shadow: 0 0 30px rgba(47, 191, 113, 0.5); }
+  100% { transform: scale(1); }
+}
+
+/* Timer bar */
+.timer-bar {
+  height: 8px;
+  background: var(--steel);
+  width: 100%;
+  max-width: 1000px;
+  position: relative;
+  margin-bottom: 16px;
+}
+.timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ok) 0%, var(--gold) 60%, var(--blood) 100%);
+  width: 100%;
+  transform-origin: left center;
+  transition: transform 0.1s linear;
+}
+
+.answers-tally {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.18em;
+  font-size: 1rem;
+  color: var(--paper-dim);
+  margin: 8px 0 14px;
+}
+.answers-tally strong { color: var(--gold-bright); font-size: 1.4rem; }
+
+.q-explain {
+  background: rgba(212, 167, 44, 0.08);
+  border-left: 4px solid var(--gold);
+  padding: 14px 18px;
+  max-width: 1000px;
+  margin: 0 auto 20px;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.95rem;
+  color: var(--paper);
+  text-align: left;
+  line-height: 1.55;
+}
+.q-explain strong { color: var(--gold-bright); }
+
+/* Player chips during reveal */
+.reveal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 1000px;
+  margin: 6px auto 18px;
+}
+.reveal-chip {
+  background: var(--steel-2);
+  border: 2px solid var(--corner-color);
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 110px;
+}
+.reveal-chip.right { background: rgba(47, 191, 113, 0.18); border-color: var(--ok); }
+.reveal-chip.wrong { background: rgba(193, 39, 45, 0.15); border-color: var(--blood); }
+.reveal-chip .nm {
+  font-family: 'Anton', sans-serif;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+.reveal-chip .gain {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+  color: var(--gold-bright);
+}
+.reveal-chip.right .gain { color: var(--ok); }
+.reveal-chip.wrong .gain { color: var(--blood); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOST: SCOREBOARD                                            */
+/* ═══════════════════════════════════════════════════════════ */
+.scoreboard {
+  background: var(--canvas);
+  border-top: 2px solid var(--gold);
+  padding: 14px 18px 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.corner {
+  background: var(--steel-2);
+  border: 3px solid var(--corner-color);
+  padding: 10px 8px 12px;
+  text-align: center;
+  position: relative;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.corner.disconnected { opacity: 0.35; border-style: dashed; }
+.corner.answered { background: rgba(47, 191, 113, 0.12); }
+.corner-fighter {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(0.95rem, 1.7vw, 1.3rem);
+  text-transform: uppercase;
+  color: var(--paper);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+.corner-score-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+  color: var(--corner-color);
+  line-height: 1;
+}
+.corner-score-lbl {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.65rem;
+  color: var(--paper-dim);
+  letter-spacing: 0.18em;
+  margin-top: 2px;
+}
+.corner-streak {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  background: var(--blood);
+  color: var(--paper);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  transform: rotate(8deg);
+  white-space: nowrap;
+  animation: flicker 0.8s infinite;
+}
+.corner-answered-tick {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--ok);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+@keyframes flicker {
+  0%, 100% { transform: rotate(8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.08); }
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  HOST: ROUND END / CHAMPION                                  */
+/* ═══════════════════════════════════════════════════════════ */
+.round-end-bg {
+  background: radial-gradient(ellipse at top, rgba(212, 167, 44, 0.18) 0%, var(--ink) 70%);
+}
+.leaderboard {
+  width: 100%;
+  max-width: 720px;
+  margin: 30px 0;
+}
+.lb-row {
+  display: grid;
+  grid-template-columns: 60px 50px 1fr auto;
+  gap: 18px;
+  align-items: center;
+  background: var(--steel-2);
+  border-left: 6px solid var(--corner-color);
+  padding: 16px 20px;
+  margin-bottom: 8px;
+}
+.lb-place {
+  font-family: 'Anton', sans-serif;
+  font-size: 2rem;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1;
+}
+.lb-place.first { color: var(--gold-bright); }
+.lb-place.last { color: var(--blood); }
+.lb-medal { font-size: 1.8rem; text-align: center; }
+.lb-name {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.4rem;
+  color: var(--paper);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.lb-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.7rem;
+  color: var(--corner-color);
+  letter-spacing: 0.05em;
+}
+
+.champion-screen {
+  background: radial-gradient(ellipse at center, rgba(212, 167, 44, 0.3) 0%, var(--ink) 70%), var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+.champion-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    from 0deg at 50% 0%,
+    transparent 0deg, rgba(212, 167, 44, 0.03) 4deg,
+    transparent 8deg, rgba(212, 167, 44, 0.06) 12deg,
+    transparent 16deg
+  );
+  animation: spin 60s linear infinite;
+  pointer-events: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.belt {
+  width: clamp(280px, 60vw, 500px);
+  margin: 30px auto 30px;
+  animation: beltDrop 1s 0.3s ease-out both;
+}
+@keyframes beltDrop {
+  0% { opacity: 0; transform: translateY(-200px) rotate(-10deg); }
+  60% { opacity: 1; transform: translateY(20px) rotate(2deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(0); }
+}
+.champ-name {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(3rem, 11vw, 8rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: var(--champ-color);
+  text-shadow: 5px 5px 0 var(--blood-dark);
+  margin: 10px 0;
+  animation: slamIn 0.7s 1.4s both;
+}
+.champ-title {
+  font-family: 'Permanent Marker', cursive;
+  font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+  color: var(--gold-bright);
+  margin-bottom: 30px;
+  animation: fadeIn 0.7s 1.9s both;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  PLAYER: SCREENS                                             */
+/* ═══════════════════════════════════════════════════════════ */
+body.player {
+  background: var(--ink);
+}
+
+.p-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Top bar with player info during game */
+.p-topbar {
+  background: var(--canvas);
+  border-bottom: 2px solid var(--corner-color, var(--gold));
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.p-topbar .my-name {
+  color: var(--corner-color, var(--gold));
+  font-size: 1.05rem;
+  text-transform: uppercase;
+}
+.p-topbar .my-score {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--paper);
+  font-size: 1.2rem;
+}
+.p-topbar .my-score strong { color: var(--gold-bright); }
+
+/* JOIN screen */
+.p-join {
+  padding: 30px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.p-join h1 {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(2.2rem, 9vw, 3.6rem);
+  text-transform: uppercase;
+  line-height: 0.9;
+  color: var(--paper);
+  text-shadow: 3px 3px 0 var(--blood-dark);
+  margin-bottom: 8px;
+}
+.p-join h1 em { font-style: normal; color: var(--blood); display: inline-block; transform: skewX(-5deg); }
+.p-join .sub {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--gold-bright);
+  margin-bottom: 30px;
+  font-size: 1rem;
+}
+.p-join .name-input {
+  width: 100%;
+  max-width: 360px;
+  padding: 18px 22px;
+  border: 3px solid var(--gold);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Anton', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  outline: none;
+  margin-bottom: 16px;
+}
+.p-join .name-input:focus { border-color: var(--gold-bright); }
+.p-join .name-input::placeholder { color: var(--paper-dim); opacity: 0.6; }
+
+.p-status {
+  font-family: 'Special Elite', monospace;
+  color: var(--paper-dim);
+  font-size: 0.95rem;
+  margin: 14px 0;
+}
+.p-status.error { color: var(--blood); }
+.p-status.ok { color: var(--ok); }
+
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--steel);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 18px auto;
+}
+
+/* LOBBY (waiting) */
+.p-lobby {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+}
+.p-lobby .corner-pill {
+  width: 80px; height: 80px;
+  background: var(--corner-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  color: var(--ink);
+  margin-bottom: 20px;
+  letter-spacing: 0.1em;
+}
+.p-lobby .my-fighter {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(2rem, 8vw, 3rem);
+  text-transform: uppercase;
+  color: var(--paper);
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.p-lobby .lobby-msg {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--gold-bright);
+  font-size: 1.1rem;
+  max-width: 320px;
+  margin: 16px auto;
+}
+
+/* PLAYER QUESTION: 4 big colored buttons */
+.p-q {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+.p-opt {
+  background: var(--opt-color);
+  border: none;
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(3rem, 18vw, 6rem);
+  color: var(--paper);
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.p-opt:active { transform: scale(0.96); }
+.p-opt::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px solid rgba(255,255,255,0.3);
+  pointer-events: none;
+}
+.p-opt[data-letter="A"] { --opt-color: var(--opt-a); }
+.p-opt[data-letter="B"] { --opt-color: var(--opt-b); }
+.p-opt[data-letter="C"] { --opt-color: var(--opt-c); }
+.p-opt[data-letter="D"] { --opt-color: var(--opt-d); }
+
+/* Mini timer at bottom of question screen */
+.p-timer {
+  height: 10px;
+  background: var(--steel-2);
+  border-top: 2px solid var(--gold);
+}
+.p-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ok) 0%, var(--gold) 60%, var(--blood) 100%);
+  width: 100%;
+  transform-origin: left center;
+  transition: transform 0.1s linear;
+}
+
+/* PLAYER LOCKED */
+.p-locked {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+  background: var(--locked-color, var(--steel-2));
+}
+.p-locked-letter {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(8rem, 40vw, 14rem);
+  line-height: 1;
+  color: var(--paper);
+  text-shadow: 8px 8px 0 rgba(0,0,0,0.4);
+  margin: 20px 0;
+}
+.p-locked-msg {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  text-transform: uppercase;
+  color: var(--paper);
+  margin-bottom: 16px;
+}
+.p-locked-sub {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--paper);
+  opacity: 0.85;
+  font-size: 1rem;
+}
+
+/* PLAYER REVEAL */
+.p-reveal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+}
+.p-reveal.right { background: var(--ok); color: var(--ink); }
+.p-reveal.wrong { background: var(--blood); color: var(--paper); }
+.p-reveal-headline {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(3rem, 14vw, 6rem);
+  line-height: 1;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  text-shadow: 5px 5px 0 rgba(0,0,0,0.25);
+}
+.p-reveal-points {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.5rem, 11vw, 5rem);
+  letter-spacing: 0.04em;
+  margin: 14px 0;
+}
+.p-reveal-newscore {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+}
+.p-reveal-streak {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 1.2rem;
+  margin-top: 14px;
+  background: rgba(0,0,0,0.25);
+  padding: 6px 14px;
+  display: inline-block;
+}
+
+/* PLAYER LEADERBOARD */
+.p-lb {
+  flex: 1;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.p-lb h2 {
+  font-family: 'Anton', sans-serif;
+  font-size: 2rem;
+  color: var(--paper);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.p-lb .my-place {
+  font-family: 'Bebas Neue', sans-serif;
+  text-align: center;
+  color: var(--gold-bright);
+  font-size: 1.4rem;
+  margin-bottom: 18px;
+  letter-spacing: 0.15em;
+}
+.p-lb-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  background: var(--steel-2);
+  border-left: 4px solid var(--corner-color);
+  padding: 10px 14px;
+  margin-bottom: 6px;
+}
+.p-lb-row.you { background: var(--corner-color); }
+.p-lb-row.you .lb-nm,
+.p-lb-row.you .lb-pl,
+.p-lb-row.you .lb-pts { color: var(--ink); font-weight: 600; }
+.lb-pl {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.5rem;
+  color: var(--paper);
+  text-align: center;
+}
+.lb-nm {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+.lb-pts {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--corner-color);
+  letter-spacing: 0.05em;
+  font-size: 1.2rem;
+}
+
+/* RESET button */
+.reset-btn {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  background: transparent;
+  border: 1px solid rgba(193, 39, 45, 0.4);
+  color: var(--paper-dim);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  z-index: 90;
+}
+.reset-btn:hover { color: var(--blood); border-color: var(--blood); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--steel-2);
+  border: 1px solid var(--gold);
+  padding: 8px 18px;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  z-index: 200;
+  animation: toastIn 0.3s, toastOut 0.3s 2.7s both;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes toastOut { to { opacity: 0; transform: translate(-50%, -20px); } }
+
+/* Manual code entry (fallback if QR fails) */
+.manual-join {
+  margin-top: 20px;
+  text-align: center;
+  font-family: 'Special Elite', monospace;
+  color: var(--paper-dim);
+  font-size: 0.85rem;
+}
+.manual-join input {
+  background: var(--steel-2);
+  border: 1px solid var(--gold);
+  color: var(--paper);
+  padding: 6px 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.2em;
+  font-size: 1rem;
+  text-transform: uppercase;
+  width: 100%;
+  max-width: 240px;
+  margin: 8px;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  QUESTION BANK (same 42 from previous version)
+// ═══════════════════════════════════════════════════════════════════════════
+const ROUNDS = [
+  {
+    name: 'BUSINESS ACTIVITY', tag: 'ROUND 01', line: '"Footwork & Foundations"',
+    questions: [
+      {q:'What are the FOUR factors of production?', opts:['Land, labour, capital, enterprise','Money, machines, materials, men','Owners, workers, customers, government','Income, profit, revenue, costs'], correct:0, why:'<strong>Land</strong> (natural resources), <strong>Labour</strong> (workers), <strong>Capital</strong> (machinery & money), <strong>Enterprise</strong> (the risk-taker).'},
+      {q:'A sole trader has...', opts:['Limited liability','Unlimited liability','Shareholders','A board of directors'], correct:1, why:'Sole traders & partnerships have <strong>unlimited liability</strong> — personal assets can be seized.'},
+      {q:'What does LIMITED LIABILITY mean?', opts:['The business has a limited time to operate','Owners can only lose what they invested','Profits are capped by law','Only employees can sue the business'], correct:1, why:'Limited liability = personal assets fully protected. Found in Ltd and plc.'},
+      {q:'Which of these is NOT one of the seven main stakeholder groups?', opts:['Shareholders','Employees','Competitors','Local community'], correct:2, why:'The seven: shareholders, employees, customers, government, local community, suppliers, banks. Competitors are <strong>rivals</strong>, not stakeholders.'},
+      {q:'HORIZONTAL integration is when...', opts:['A merger between two businesses at the SAME stage in the SAME industry','A merger between businesses at different production stages','A business expands internationally','A business splits into two separate firms'], correct:0, why:'Horizontal = same stage, same industry. Eg: one supermarket buys a rival supermarket.'},
+      {q:'A business sells shares on the stock exchange to ANYONE. It is a...', opts:['Sole trader','Private limited company (Ltd)','Public limited company (plc)','Public sector organisation'], correct:2, why:'plc shares trade publicly. Don\'t confuse with "public sector" — plc is privately owned by shareholders.'},
+    ]
+  },
+  {
+    name: 'MARKETING', tag: 'ROUND 02', line: '"Reading the opponent"',
+    questions: [
+      {q:'PRIMARY market research is...', opts:['The first research a business ever does','New, first-hand data collected for the business\'s own purpose','Research from government statistics and trade reports','The most important research a business does'], correct:1, why:'Primary = first-hand. Secondary = existing data from elsewhere.'},
+      {q:'PENETRATION pricing means...', opts:['Setting a HIGH price at launch','Setting a VERY LOW price to enter a market and gain customers fast','Pricing based on what competitors charge','Calculating cost and adding a percentage mark-up'], correct:1, why:'Penetration = low price, fast market entry. Skimming = high price, then drop.'},
+      {q:'A USP is...', opts:['United Service Provider','Universal Standard Price','Unique Selling Point','Unit Sales Process'], correct:2, why:'USP = the feature that makes a product DIFFERENT from competitors.'},
+      {q:'What is the correct ORDER of the product life cycle?', opts:['Introduction, growth, maturity, decline','Launch, peak, plateau, fall','Start, middle, end, retirement','Introduction, decline, maturity, growth'], correct:0, why:'Introduction → Growth → Maturity → Decline. Maturity is where MOST profit is made.'},
+      {q:'At which stage of the product life cycle is cash flow typically NEGATIVE?', opts:['Introduction','Growth','Maturity','Decline'], correct:0, why:'In Introduction, heavy launch investment exceeds the low initial revenue.'},
+      {q:'A NICHE market is...', opts:['A wide-appeal mass market','A small specialist segment','A market only for cheap goods','The same as e-commerce'], correct:1, why:'Niche = small specialist segment. Less competition, premium pricing, loyal customers.'},
+    ]
+  },
+  {
+    name: 'OPERATIONS', tag: 'ROUND 03', line: '"The engine room"',
+    questions: [
+      {q:'JOB production is...', opts:['Making one unique product at a time, start to finish','Making batches of identical products','Continuous automated assembly line','Hiring workers for specific tasks'], correct:0, why:'Job = one unique product at a time. High cost per unit, very flexible.'},
+      {q:'JIT means...', opts:['Joint Industrial Training','Just In Time','Job Inspection Tool','Just Industrial Trade'], correct:1, why:'Just In Time — materials arrive ONLY when needed. Eliminates storage costs.'},
+      {q:'The difference between QUALITY CONTROL and QUALITY ASSURANCE is...', opts:['QC checks at every stage; QA checks at the end','QC checks at the END of production; QA checks at every stage','They are the same thing','QA only applies to services'], correct:1, why:'QC = inspect finished goods (defects late). QA = check at every stage (prevents defects).'},
+      {q:'An import TARIFF is...', opts:['A LIMIT on the quantity of imports allowed','A TAX on imported goods','A subsidy paid to importers','A document needed to import goods'], correct:1, why:'Tariff = TAX on imports. Quota = LIMIT on quantity.'},
+      {q:'If a country\'s currency APPRECIATES, exporters will probably...', opts:['Sell MORE abroad because their goods are cheaper','Sell LESS abroad because their goods are more expensive','See no change in sales','Stop exporting completely'], correct:1, why:'Strong currency makes exports MORE expensive. Memory hook: SPICED.'},
+      {q:'TQM stands for...', opts:['Total Quality Management','Top Quality Materials','Two-stage Quality Method','Trade Quality Movement'], correct:0, why:'TQM = every employee responsible for quality. Culture of zero defects.'},
+    ]
+  },
+  {
+    name: 'HUMAN RESOURCES', tag: 'ROUND 04', line: '"The team in your corner"',
+    questions: [
+      {q:'A JOB DESCRIPTION lists...', opts:['The skills and qualifications required','The tasks, duties, and responsibilities of the role','The salary and benefits package','Past employees who have held the role'], correct:1, why:'Job DESCRIPTION = the JOB. Job SPECIFICATION = the PERSON.'},
+      {q:'Which theorist said workers are motivated PRIMARILY by money?', opts:['Maslow','Herzberg','Taylor','Mayo'], correct:2, why:'Taylor — pay piece-rate based on output. Time-and-motion studies for efficiency.'},
+      {q:'According to Herzberg, salary is a...', opts:['Motivator','Hygiene factor','Self-actualisation need','Form of collective bargaining'], correct:1, why:'Salary is a HYGIENE factor — prevents dissatisfaction but doesn\'t motivate.'},
+      {q:'At the BOTTOM of Maslow\'s hierarchy are...', opts:['Self-actualisation needs','Esteem needs','Social needs','Physiological needs'], correct:3, why:'Order: Physiological → Safety → Social → Esteem → Self-actualisation.'},
+      {q:'Which leadership style means the manager makes ALL decisions alone?', opts:['Democratic','Laissez-faire','Autocratic','Bureaucratic'], correct:2, why:'Autocratic = manager decides alone. Best in a crisis.'},
+      {q:'DELEGATION means giving a subordinate...', opts:['AUTHORITY to do a task, but the manager keeps RESPONSIBILITY','Both authority and responsibility','Their own department to run independently','A higher salary'], correct:0, why:'Pass the AUTHORITY but retain the RESPONSIBILITY.'},
+    ]
+  },
+  {
+    name: 'FINANCE', tag: 'ROUND 05', line: '"The numbers game"',
+    questions: [
+      {q:'FIXED COSTS are costs that...', opts:['Change directly with output','Do NOT change with output','Only relate to fixed assets','Are set by law'], correct:1, why:'Fixed costs = unchanged by output (rent, insurance). Paid even if output is zero.'},
+      {q:'BREAK-EVEN POINT is the level of output where...', opts:['The business makes maximum profit','Total revenue equals total costs','Variable costs are zero','The business has to close'], correct:1, why:'Break-even: TR = TC. Below = loss. Above = profit.'},
+      {q:'CONTRIBUTION per unit equals...', opts:['Selling price + variable cost per unit','Selling price − variable cost per unit','Fixed costs ÷ output','Revenue ÷ units sold'], correct:1, why:'Contribution = SP − VC per unit.'},
+      {q:'The KEY difference between PROFIT and CASH is...', opts:['They are the same thing','Profit is over a period; cash is what is physically available right now','Cash includes credit sales; profit does not','Profit is for owners; cash is for employees'], correct:1, why:'A profitable business can FAIL if it runs out of cash.'},
+      {q:'WORKING CAPITAL equals...', opts:['Current assets − current liabilities','Total assets − total liabilities','Cash held in the bank','Profit retained in the business'], correct:0, why:'Working capital = CA − CL. Must be positive.'},
+      {q:'If FIXED COSTS rise, the break-even output...', opts:['Falls','Stays the same','Rises','Becomes zero'], correct:2, why:'Higher FC pushes TC line UP → break-even output RISES.'},
+    ]
+  },
+  {
+    name: 'EXTERNAL FACTORS', tag: 'ROUND 06', line: '"Outside the ring"',
+    questions: [
+      {q:'When INTEREST RATES rise, businesses typically...', opts:['Invest MORE because credit is easier','Invest LESS because borrowing is more expensive','Pay higher dividends','Hire more workers'], correct:1, why:'Higher rates → borrowing expensive → less investment.'},
+      {q:'FISCAL POLICY involves...', opts:['The central bank changing interest rates','The government changing tax and public spending','Currency exchange rate fixing','Import tariffs only'], correct:1, why:'Fiscal = government tax & spending. Monetary = central bank & rates.'},
+      {q:'CSR stands for...', opts:['Customer Service Response','Corporate Social Responsibility','Capital Stock Ratio','Cost Saving Reduction'], correct:1, why:'CSR = voluntary actions beyond legal requirements.'},
+      {q:'A NEGATIVE EXTERNALITY is...', opts:['A cost of business activity borne by third parties (not the business itself)','A loss reported in the income statement','A foreign exchange loss','A bad customer review online'], correct:0, why:'Negative externality = cost paid by OTHERS (eg pollution).'},
+      {q:'An MNC is...', opts:['A small local business','A multinational corporation operating in more than one country','A government agency','A type of pricing strategy'], correct:1, why:'MNC = headquartered in one country, operations in many.'},
+      {q:'INFLATION is...', opts:['A rise in interest rates','A sustained general rise in the price level','When sales fall','A type of import tax'], correct:1, why:'Inflation = sustained rise in prices. Eats consumer spending power.'},
+    ]
+  },
+  {
+    name: 'KO COMBOS', tag: 'FINAL ROUND ★ DOUBLE POINTS', line: '"Knockout combinations"',
+    questions: [
+      {q:'NET PROFIT equals...', opts:['Revenue − cost of sales','Gross profit − total overheads','Revenue − variable costs only','Sales − tax paid'], correct:1, why:'Net profit = Gross profit − Overheads.'},
+      {q:'BREAK-EVEN OUTPUT equals...', opts:['Fixed costs ÷ contribution per unit','Total costs ÷ output','Variable costs − fixed costs','Revenue − total costs'], correct:0, why:'BEP = FC ÷ (SP − VC per unit).'},
+      {q:'MARGIN OF SAFETY equals...', opts:['Selling price − variable cost','Actual output − break-even output','Revenue − total costs','Fixed costs ÷ output'], correct:1, why:'MoS = how far output can fall before you lose money.'},
+      {q:'NET CASH FLOW equals...', opts:['Profit minus tax','Total inflows − total outflows','Closing balance + opening balance','Revenue ÷ outflows'], correct:1, why:'Net cash flow = inflows − outflows.'},
+      {q:'GROSS PROFIT MARGIN % is calculated as...', opts:['(Net profit ÷ revenue) × 100','(Gross profit ÷ revenue) × 100','(Revenue ÷ gross profit) × 100','(Gross profit ÷ cost of sales) × 100'], correct:1, why:'GPM% = (Gross profit ÷ Revenue) × 100.'},
+      {q:'TOTAL COSTS equals...', opts:['Revenue − profit','Fixed costs + (variable cost per unit × output)','Variable cost ÷ fixed cost','Selling price × quantity sold'], correct:1, why:'TC = FC + (VC per unit × Output).'},
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+const TIME_LIMIT_MS = 20000;          // 20 seconds per question
+const MAX_PTS = 1000;
+const MIN_PTS_CORRECT = 500;
+const STREAK_BONUS = 500;
+const STREAK_THRESHOLD = 3;
+const COLORS = ['#c1272d', '#e85d04', '#d4a72c', '#0d9488', '#9d4edd', '#2563eb', '#db2777', '#65a30d'];
+const MAX_PLAYERS = 8;
+const MIN_PLAYERS_TO_START = 1;       // permissive — start with 1 for testing
+const PEER_PREFIX = 'igcse-fight-';   // peer ID prefix for our app
+const STORAGE_HOST = 'igcse-fight-host-v1';
+
+const app = document.getElementById('app');
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function genRoomCode() {
+  // Short, easy to type, no ambiguous chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 5}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function shuffleAllOptions(seed) {
+  let s = seed >>> 0;
+  function rand() {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  ROUNDS.forEach(r => {
+    r.questions.forEach(q => {
+      const pairs = q.opts.map((opt, i) => ({opt, correct: i === q.correct}));
+      for (let i = pairs.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+      }
+      q.opts = pairs.map(p => p.opt);
+      q.correct = pairs.findIndex(p => p.correct);
+    });
+  });
+}
+
+function showToast(text, ms = 3000) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUDIO (boxing bell for round transitions)
+// ═══════════════════════════════════════════════════════════════════════════
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function ringBell() {
+  try {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+    [880, 1320, 1760, 2640].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.16 / (i + 1), now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6 - i * 0.1);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.7);
+    });
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ENTRY POINT
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  // file:// can't be QR-scanned. Show hosting instructions.
+  if (location.protocol === 'file:') {
+    return renderHostingInstructions();
+  }
+
+  const params = new URLSearchParams(location.search);
+  const joinCode = params.get('join');
+
+  if (joinCode) {
+    initPlayer(joinCode);
+  } else {
+    initHost();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HOSTING INSTRUCTIONS (file:// fallback)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderHostingInstructions() {
+  app.innerHTML = `
+    <div class="screen hosting-screen">
+      <div style="text-align:center">
+        <div class="tag">★ ALMOST READY ★</div>
+        <h1 class="title-l">YOU NEED TO HOST<br>THIS FILE FIRST</h1>
+        <p class="help-line" style="margin: 20px auto;">
+          Phones can't scan a QR code that points to a file on your hard drive.<br>
+          The fastest way to get a public URL — no signup needed:
+        </p>
+      </div>
+
+      <div class="step">
+        <span class="step-num">1.</span>
+        Go to <a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop</a>
+      </div>
+      <div class="step">
+        <span class="step-num">2.</span>
+        Drag this HTML file (<code>${esc(location.pathname.split('/').pop() || 'fight_night_live.html')}</code>) into the page
+      </div>
+      <div class="step">
+        <span class="step-num">3.</span>
+        You'll get a public URL in about 10 seconds. Open it on your laptop, project, run the fight.
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <p class="help-line">
+          Other free options that work the same way:<br>
+          <a href="https://surge.sh" target="_blank">surge.sh</a> ·
+          <a href="https://app.tiiny.host" target="_blank">tiiny.host</a> ·
+          GitHub Pages
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  HOST FLOW
+// ═══════════════════════════════════════════════════════════════════════════
+const hostState = {
+  phase: 'init',          // init | lobby | roundIntro | question | reveal | roundEnd | champion | error
+  hostId: null,
+  roomCode: null,
+  players: new Map(),     // peerId -> {name, score, streak, bestStreak, color, conn, connected, joined}
+  roundIdx: 0,
+  qIdx: 0,
+  questionStartTime: 0,
+  questionTimer: null,
+  answers: new Map(),     // peerId -> {optionIdx, timeMs, gainedPoints, isCorrect}
+  shuffleSeed: 0,
+  peer: null,
+  errorMsg: null,
+};
+
+function initHost() {
+  document.body.classList.add('host');
+  hostState.phase = 'init';
+  renderHostInit();
+
+  // Try to reuse a previous room code (so a refresh keeps the same QR)
+  let savedCode = null;
+  try {
+    const saved = localStorage.getItem(STORAGE_HOST);
+    if (saved) savedCode = JSON.parse(saved).roomCode;
+  } catch (e) {}
+
+  hostState.roomCode = savedCode || genRoomCode();
+  hostState.hostId = PEER_PREFIX + hostState.roomCode;
+
+  try {
+    hostState.peer = new Peer(hostState.hostId, { debug: 0 });
+  } catch (e) {
+    hostState.errorMsg = 'Could not initialise networking. Try a different browser.';
+    return renderHostError();
+  }
+
+  hostState.peer.on('open', id => {
+    hostState.hostId = id;
+    saveHostState();
+    hostState.phase = 'lobby';
+    renderHostLobby();
+  });
+
+  hostState.peer.on('connection', conn => {
+    handleNewConnection(conn);
+  });
+
+  hostState.peer.on('error', err => {
+    if (err.type === 'unavailable-id') {
+      // Room code collision — pick a new one
+      hostState.roomCode = genRoomCode();
+      hostState.hostId = PEER_PREFIX + hostState.roomCode;
+      try { hostState.peer.destroy(); } catch(e){}
+      // Retry once
+      try {
+        hostState.peer = new Peer(hostState.hostId, { debug: 0 });
+        hostState.peer.on('open', id => {
+          hostState.hostId = id;
+          saveHostState();
+          hostState.phase = 'lobby';
+          renderHostLobby();
+        });
+        hostState.peer.on('connection', handleNewConnection);
+        hostState.peer.on('error', e2 => {
+          hostState.errorMsg = 'Network error: ' + e2.type + '. Refresh to try again.';
+          renderHostError();
+        });
+      } catch (e2) {
+        hostState.errorMsg = 'Could not start hosting. Refresh to try again.';
+        renderHostError();
+      }
+    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+      hostState.errorMsg = 'Connection to the matchmaking server failed. Check your internet and refresh.';
+      renderHostError();
+    } else {
+      console.error('PeerJS error:', err);
+    }
+  });
+}
+
+function saveHostState() {
+  try {
+    localStorage.setItem(STORAGE_HOST, JSON.stringify({roomCode: hostState.roomCode}));
+  } catch (e) {}
+}
+
+function handleNewConnection(conn) {
+  // Reject if game already past lobby
+  if (hostState.phase !== 'lobby') {
+    conn.on('open', () => {
+      try { conn.send({type: 'rejected', reason: 'Game already in progress.'}); } catch(e){}
+      setTimeout(() => { try { conn.close(); } catch(e){} }, 500);
+    });
+    return;
+  }
+  if (hostState.players.size >= MAX_PLAYERS) {
+    conn.on('open', () => {
+      try { conn.send({type: 'rejected', reason: 'Room is full.'}); } catch(e){}
+      setTimeout(() => { try { conn.close(); } catch(e){} }, 500);
+    });
+    return;
+  }
+
+  conn.on('open', () => {
+    const color = COLORS[hostState.players.size % COLORS.length];
+    hostState.players.set(conn.peer, {
+      peerId: conn.peer,
+      name: '',
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      color,
+      conn,
+      connected: true,
+      joined: false,    // becomes true after they submit a name
+    });
+    // Send them their color so the player UI matches
+    try { conn.send({type: 'welcome', color}); } catch(e){}
+    rerenderHostLobby();
+  });
+  conn.on('data', data => handlePlayerMessage(conn.peer, data));
+  conn.on('close', () => {
+    const p = hostState.players.get(conn.peer);
+    if (p) {
+      p.connected = false;
+      // If still in lobby and never joined, just remove them
+      if (hostState.phase === 'lobby' && !p.joined) {
+        hostState.players.delete(conn.peer);
+      }
+      rerenderHostLobby();
+      if (hostState.phase === 'question') updateAnswerTally();
+    }
+  });
+  conn.on('error', err => {
+    console.error('Conn error:', err);
+  });
+}
+
+function handlePlayerMessage(peerId, data) {
+  const p = hostState.players.get(peerId);
+  if (!p) return;
+  if (data.type === 'join') {
+    p.name = (data.name || '').toUpperCase().slice(0, 14) || 'FIGHTER';
+    p.joined = true;
+    rerenderHostLobby();
+  } else if (data.type === 'answer') {
+    if (hostState.phase !== 'question') return;
+    if (!p.joined) return;                          // non-joined players can't answer
+    if (hostState.answers.has(peerId)) return;     // already answered
+    const timeMs = Math.min(Date.now() - hostState.questionStartTime, TIME_LIMIT_MS);
+    hostState.answers.set(peerId, {
+      optionIdx: data.optionIdx,
+      timeMs,
+    });
+    updateAnswerTally();
+    // ack back so player sees confirmation immediately
+    try { p.conn.send({type: 'answerAck'}); } catch(e){}
+
+    // If everyone connected has answered, end early
+    const activeCount = activePlayers().length;
+    if (hostState.answers.size >= activeCount) {
+      endQuestion();
+    }
+  }
+}
+
+function activePlayers() {
+  return [...hostState.players.values()].filter(p => p.connected && p.joined);
+}
+
+function broadcast(msg) {
+  for (const p of hostState.players.values()) {
+    if (p.connected && p.conn) {
+      try { p.conn.send(msg); } catch(e){}
+    }
+  }
+}
+
+function broadcastIndividual(makeMsg) {
+  // makeMsg is a function(player) -> message tailored per player
+  // If makeMsg returns null/undefined for a player, skip them.
+  for (const p of hostState.players.values()) {
+    if (p.connected && p.conn) {
+      const msg = makeMsg(p);
+      if (msg == null) continue;
+      try { p.conn.send(msg); } catch(e){}
+    }
+  }
+}
+
+// ─────────── HOST RENDERS ───────────
+function renderHostInit() {
+  app.innerHTML = `
+    <div class="screen">
+      <div class="tag">★ STARTING UP ★</div>
+      <h1 class="title-xl">FIGHT NIGHT<br><em>LIVE</em></h1>
+      <div class="spinner"></div>
+      <p class="help-line">Connecting to the matchmaking server…</p>
+    </div>
+  `;
+}
+
+function renderHostError() {
+  app.innerHTML = `
+    <div class="screen">
+      <div class="tag" style="color:var(--blood)">★ TROUBLE IN THE RING ★</div>
+      <h1 class="title-l">CAN'T<br>CONNECT</h1>
+      <p class="help-line" style="color:var(--blood)">${esc(hostState.errorMsg || 'Unknown error')}</p>
+      <button class="btn" onclick="location.reload()" style="margin-top:30px">↺ TRY AGAIN</button>
+    </div>
+  `;
+}
+
+function renderHostLobby() {
+  const joinUrl = location.origin + location.pathname + '?join=' + hostState.roomCode;
+  app.innerHTML = `
+    <div class="screen" style="padding-top:30px">
+      <div class="tag">★ WAITING ROOM ★ FIGHT NIGHT ★</div>
+      <h1 class="title-l">SCAN TO ENTER<br>THE RING</h1>
+
+      <div class="lobby" style="margin-top:30px">
+        <div>
+          <div class="qr-box">
+            <canvas id="qrCanvas" width="280" height="280"></canvas>
+            <div class="qr-status">Room code:</div>
+            <div class="room-code">${esc(hostState.roomCode)}</div>
+          </div>
+          <div class="qr-instructions">
+            ↑ scan with your phone camera ↑
+          </div>
+          <p class="help-line" style="text-align:center; font-size:0.78rem; margin-top:8px">
+            Or visit this URL on your phone:<br>
+            <span style="color:var(--gold-bright); user-select:text; -webkit-user-select:text">${esc(joinUrl)}</span>
+          </p>
+        </div>
+
+        <div class="lobby-fighters">
+          <h3>★ FIGHTERS IN THE RING ★</h3>
+          <div class="fighter-list" id="fighterList"></div>
+          <div style="text-align:center; margin-top:auto">
+            <button class="btn" id="startBtn" disabled>★ START THE FIGHT ★</button>
+            <p class="help-line" id="lobbyHint" style="margin-top:14px; font-size:0.78rem">
+              Need at least ${MIN_PLAYERS_TO_START} fighter to start.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Render QR code
+  if (window.QRCode && window.QRCode.toCanvas) {
+    QRCode.toCanvas(document.getElementById('qrCanvas'), joinUrl, {
+      width: 280,
+      margin: 1,
+      color: { dark: '#0a0908', light: '#f3ead3' }
+    }, err => { if (err) console.error('QR error:', err); });
+  }
+
+  document.getElementById('startBtn').onclick = startGame;
+
+  rerenderHostLobby();
+}
+
+function rerenderHostLobby() {
+  const list = document.getElementById('fighterList');
+  if (!list) return;
+  const players = [...hostState.players.values()];
+  if (players.length === 0) {
+    list.innerHTML = `<div class="empty-roster">Waiting for fighters…</div>`;
+  } else {
+    list.innerHTML = players.map((p, i) => `
+      <div class="fighter-card ${p.connected ? '' : 'disconnected'}" style="--corner-color:${p.color}">
+        <div class="num">F${i + 1}</div>
+        <div class="nm ${p.joined ? '' : 'joining'}">${p.joined ? esc(p.name) : 'joining…'}</div>
+      </div>
+    `).join('');
+  }
+
+  const joined = players.filter(p => p.connected && p.joined).length;
+  const startBtn = document.getElementById('startBtn');
+  const hint = document.getElementById('lobbyHint');
+  if (startBtn) {
+    startBtn.disabled = joined < MIN_PLAYERS_TO_START;
+  }
+  if (hint) {
+    if (joined < MIN_PLAYERS_TO_START) {
+      hint.textContent = `Need at least ${MIN_PLAYERS_TO_START} fighter to start. (${joined} ready)`;
+    } else {
+      hint.textContent = `${joined} fighter${joined === 1 ? '' : 's'} ready · Hit START when everyone\'s in.`;
+    }
+  }
+}
+
+// ─────────── HOST: GAME RENDERS ───────────
+function renderHostRoundIntro() {
+  const r = ROUNDS[hostState.roundIdx];
+  app.innerHTML = `
+    <div class="screen round-intro-bg">
+      <div class="round-intro-num">★ ${esc(r.tag)} ★</div>
+      <svg class="round-intro-bell bell-svg" viewBox="0 0 100 100">
+        <path d="M30 20 Q50 5 70 20 L75 60 Q75 70 65 70 L35 70 Q25 70 25 60 Z"/>
+        <rect x="44" y="10" width="12" height="14" fill="var(--gold)" stroke="var(--blood-dark)" stroke-width="2"/>
+        <circle cx="50" cy="78" r="6"/>
+        <line x1="50" y1="70" x2="50" y2="78" stroke="var(--blood-dark)" stroke-width="2"/>
+      </svg>
+      <h1 class="round-intro-name">${esc(r.name)}</h1>
+      <div class="round-intro-tagline">${esc(r.line)}</div>
+      <div class="round-intro-cta">
+        <button class="btn" id="beginRoundBtn">★ FIGHT! ★</button>
+      </div>
+      ${hostState.roundIdx > 0 ? `
+        <p class="help-line" style="margin-top:30px">
+          Current leader: <b style="color:var(--gold-bright)">${esc(getLeader().name)}</b>
+          with <b>${getLeader().score} pts</b>
+        </p>
+      ` : ''}
+    </div>
+  `;
+  document.getElementById('beginRoundBtn').onclick = () => showQuestion(0);
+  setTimeout(ringBell, 800);
+}
+
+function renderHostQuestion() {
+  const r = ROUNDS[hostState.roundIdx];
+  const q = r.questions[hostState.qIdx];
+  const isKO = hostState.roundIdx === ROUNDS.length - 1;
+  const optColors = ['var(--opt-a)', 'var(--opt-b)', 'var(--opt-c)', 'var(--opt-d)'];
+
+  app.innerHTML = `
+    <div class="q-screen">
+      <div class="q-topbar">
+        <div><span class="round-label">${esc(r.tag)}</span> · ${esc(r.name)}</div>
+        <div class="q-counter">QUESTION ${hostState.qIdx + 1} / ${r.questions.length}</div>
+        <div class="topbar-actions">
+          <button class="btn ghost" onclick="forceEndQuestion()">REVEAL ★</button>
+        </div>
+      </div>
+
+      <div class="q-main">
+        ${isKO ? '<div class="q-meta ko">★ KO COMBO · DOUBLE POINTS ★</div>' : '<div class="q-meta">★ POWER MOVE ★</div>'}
+        <div class="q-card">
+          <div class="q-text">${esc(q.q)}</div>
+        </div>
+
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+
+        <div class="answers-tally" id="answersTally">
+          <strong>0</strong> / ${activePlayers().length} answered
+        </div>
+
+        <div class="q-options">
+          ${q.opts.map((opt, i) => `
+            <div class="q-option" style="--opt-color:${optColors[i]}">
+              <span class="letter">${String.fromCharCode(65 + i)}</span>
+              <span>${esc(opt)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="scoreboard" id="scoreboard"></div>
+    </div>
+  `;
+  rerenderScoreboard();
+  startTimerAnimation();
+}
+
+function startTimerAnimation() {
+  const fill = document.getElementById('timerFill');
+  if (!fill) return;
+  const startTime = hostState.questionStartTime;
+  function tick() {
+    if (hostState.phase !== 'question') return;
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, 1 - elapsed / TIME_LIMIT_MS);
+    fill.style.transform = `scaleX(${remaining})`;
+    if (remaining > 0) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateAnswerTally() {
+  const el = document.getElementById('answersTally');
+  if (el) {
+    el.innerHTML = `<strong>${hostState.answers.size}</strong> / ${activePlayers().length} answered`;
+  }
+  rerenderScoreboard();
+}
+
+function rerenderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  if (!sb) return;
+  const players = [...hostState.players.values()].filter(p => p.joined);
+  sb.innerHTML = players.map(p => {
+    const answered = hostState.answers.has(p.peerId);
+    const showStreak = p.streak >= STREAK_THRESHOLD;
+    return `
+      <div class="corner ${p.connected ? '' : 'disconnected'} ${answered ? 'answered' : ''}" style="--corner-color:${p.color}">
+        <div>
+          <div class="corner-fighter">${esc(p.name)}</div>
+        </div>
+        <div>
+          <div class="corner-score-num">${p.score}</div>
+          <div class="corner-score-lbl">PTS</div>
+        </div>
+        ${answered ? `<div class="corner-answered-tick">✓</div>` : ''}
+        ${showStreak ? `<div class="corner-streak">🔥 ${p.streak}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHostReveal() {
+  const r = ROUNDS[hostState.roundIdx];
+  const q = r.questions[hostState.qIdx];
+  const isKO = hostState.roundIdx === ROUNDS.length - 1;
+  const isLastQ = hostState.qIdx === r.questions.length - 1;
+  const optColors = ['var(--opt-a)', 'var(--opt-b)', 'var(--opt-c)', 'var(--opt-d)'];
+
+  // Build chips of who got it right/wrong
+  const players = [...hostState.players.values()].filter(p => p.joined);
+  const chips = players.map(p => {
+    const ans = hostState.answers.get(p.peerId);
+    const isCorrect = ans && ans.optionIdx === q.correct;
+    const gained = ans ? ans.gainedPoints : 0;
+    return `
+      <div class="reveal-chip ${isCorrect ? 'right' : 'wrong'}" style="--corner-color:${p.color}">
+        <div class="nm">${esc(p.name)}</div>
+        <div class="gain">${isCorrect ? '+' + gained : (ans ? 'MISSED' : 'NO ANSWER')}</div>
+      </div>
+    `;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="q-screen">
+      <div class="q-topbar">
+        <div><span class="round-label">${esc(r.tag)}</span> · ${esc(r.name)}</div>
+        <div class="q-counter">QUESTION ${hostState.qIdx + 1} / ${r.questions.length} · REVEALED</div>
+        <div class="topbar-actions"></div>
+      </div>
+
+      <div class="q-main">
+        <div class="q-meta">★ ANSWER ★</div>
+        <div class="q-card">
+          <div class="q-text">${esc(q.q)}</div>
+        </div>
+
+        <div class="q-options">
+          ${q.opts.map((opt, i) => `
+            <div class="q-option ${i === q.correct ? 'correct' : 'dim'}" style="--opt-color:${optColors[i]}">
+              <span class="letter">${String.fromCharCode(65 + i)}</span>
+              <span>${esc(opt)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="q-explain"><b>WHY:</b> ${q.why}</div>
+
+        <div class="reveal-chips">${chips}</div>
+
+        <div style="display:flex;gap:14px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" id="nextBtn">
+            ${isLastQ ? '★ END ROUND ★' : 'NEXT QUESTION ★'}
+          </button>
+        </div>
+      </div>
+
+      <div class="scoreboard" id="scoreboard"></div>
+    </div>
+  `;
+
+  rerenderScoreboard();
+  document.getElementById('nextBtn').onclick = () => {
+    if (isLastQ) {
+      showRoundEnd();
+    } else {
+      showQuestion(hostState.qIdx + 1);
+    }
+  };
+}
+
+function renderHostRoundEnd() {
+  const r = ROUNDS[hostState.roundIdx];
+  const isLastRound = hostState.roundIdx === ROUNDS.length - 1;
+  const sorted = [...hostState.players.values()].filter(p => p.joined).sort((a, b) => b.score - a.score);
+  const winner = sorted[0];
+
+  app.innerHTML = `
+    <div class="screen round-end-bg">
+      <div class="tag">${esc(r.tag)} COMPLETE</div>
+      <h1 class="title-l">${esc(r.name)}<br>STANDINGS</h1>
+
+      <p style="margin-top:18px;font-family:'Permanent Marker',cursive;color:var(--gold-bright);font-size:1.2rem">
+        ${isLastRound ? '⚡ Final standings before the belt ⚡' :
+          `Round leader: <b style="color:${winner.color}">${esc(winner.name)}</b>`}
+      </p>
+
+      <div class="leaderboard">
+        ${sorted.map((p, place) => `
+          <div class="lb-row" style="--corner-color:${p.color}">
+            <div class="lb-place ${place === 0 ? 'first' : place === sorted.length - 1 ? 'last' : ''}">${place + 1}</div>
+            <div class="lb-medal">${['🥇', '🥈', '🥉', '', '', '', '', ''][place] || '·'}</div>
+            <div class="lb-name">${esc(p.name)}</div>
+            <div class="lb-score">${p.score} PTS</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <button class="btn" id="nextRoundBtn">
+        ${isLastRound ? '★ CROWN THE CHAMPION ★' : 'NEXT ROUND ★'}
+      </button>
+    </div>
+  `;
+  document.getElementById('nextRoundBtn').onclick = () => {
+    if (isLastRound) {
+      showFinal();
+    } else {
+      nextRound();
+    }
+  };
+}
+
+function renderHostChampion() {
+  const sorted = [...hostState.players.values()].filter(p => p.joined).sort((a, b) => b.score - a.score);
+  if (sorted.length === 0) {
+    app.innerHTML = `<div class="screen"><h1>NO FIGHTERS</h1></div>`;
+    return;
+  }
+  const champ = sorted[0];
+  const topScore = champ.score;
+  const tied = sorted.filter(p => p.score === topScore);
+  const isTie = tied.length > 1;
+
+  app.innerHTML = `
+    <div class="screen champion-screen">
+      <div style="position:relative;z-index:1">
+        <div class="tag">★ ★ ★ ${isTie ? "TONIGHT'S CO-CHAMPIONS" : "TONIGHT'S CHAMPION"} ★ ★ ★</div>
+        <svg class="belt" viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0"  y="80" width="600" height="60" fill="#3a2515" stroke="#1a0e08" stroke-width="2"/>
+          <rect x="0"  y="80" width="600" height="6" fill="#5a3a25"/>
+          <rect x="0" y="134" width="600" height="6" fill="#5a3a25"/>
+          <ellipse cx="300" cy="110" rx="170" ry="105" fill="#d4a72c" stroke="#6e0e10" stroke-width="3"/>
+          <ellipse cx="300" cy="110" rx="155" ry="92" fill="none" stroke="#f5cc4a" stroke-width="2"/>
+          <ellipse cx="300" cy="110" rx="145" ry="84" fill="none" stroke="#6e0e10" stroke-width="1"/>
+          <ellipse cx="100" cy="110" rx="60" ry="46" fill="#d4a72c" stroke="#6e0e10" stroke-width="2"/>
+          <ellipse cx="100" cy="110" rx="50" ry="36" fill="none" stroke="#f5cc4a" stroke-width="1.5"/>
+          <ellipse cx="500" cy="110" rx="60" ry="46" fill="#d4a72c" stroke="#6e0e10" stroke-width="2"/>
+          <ellipse cx="500" cy="110" rx="50" ry="36" fill="none" stroke="#f5cc4a" stroke-width="1.5"/>
+          <text x="100" y="120" font-size="36" text-anchor="middle" fill="#6e0e10">★</text>
+          <text x="500" y="120" font-size="36" text-anchor="middle" fill="#6e0e10">★</text>
+          <text x="300" y="92" font-family="Bebas Neue, sans-serif" font-size="20" fill="#6e0e10" text-anchor="middle" letter-spacing="3">IGCSE BUSINESS</text>
+          <text x="300" y="130" font-family="Anton, sans-serif" font-size="40" fill="#6e0e10" text-anchor="middle" letter-spacing="2">CHAMPION</text>
+          <text x="300" y="158" font-family="Bebas Neue, sans-serif" font-size="14" fill="#6e0e10" text-anchor="middle" letter-spacing="3">★ FIGHT NIGHT ★</text>
+        </svg>
+
+        ${isTie ? `
+          <h1 class="champ-name" style="--champ-color:${champ.color};font-size:clamp(2rem,7vw,4.5rem)">
+            ${tied.map(p => `<span style="color:${p.color}">${esc(p.name)}</span>`).join(' &amp; ')}
+          </h1>
+          <div class="champ-title">— ${tied.length}-WAY TIE · CO-CHAMPIONS —</div>
+        ` : `
+          <h1 class="champ-name" style="--champ-color:${champ.color}">${esc(champ.name)}</h1>
+          <div class="champ-title">— UNDISPUTED CHAMPION OF THE NIGHT —</div>
+        `}
+
+        <div class="leaderboard">
+          ${sorted.map((p, place) => `
+            <div class="lb-row" style="--corner-color:${p.color}">
+              <div class="lb-place ${place === 0 ? 'first' : place === sorted.length - 1 ? 'last' : ''}">${place + 1}</div>
+              <div class="lb-medal">${['🥇', '🥈', '🥉', '', '', '', '', ''][place] || '·'}</div>
+              <div class="lb-name">${esc(p.name)} ${p.bestStreak >= STREAK_THRESHOLD ? `<span style="color:var(--blood);font-family:'Permanent Marker',cursive;font-size:0.8rem;margin-left:8px">🔥 ${p.bestStreak}-streak</span>` : ''}</div>
+              <div class="lb-score">${p.score} PTS</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top:30px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+          <button class="btn" onclick="resetHost()">★ NEW FIGHT ★</button>
+        </div>
+
+        <p class="help-line" style="margin-top:24px">
+          Now go take that knowledge into the real exam.<br>— Coach
+        </p>
+      </div>
+    </div>
+  `;
+  setTimeout(() => { ringBell(); setTimeout(ringBell, 500); setTimeout(ringBell, 1000); }, 400);
+}
+
+// ─────────── HOST: GAME LOGIC ───────────
+function startGame() {
+  hostState.shuffleSeed = Math.floor(Math.random() * 2147483647) + 1;
+  shuffleAllOptions(hostState.shuffleSeed);
+  hostState.roundIdx = 0;
+  startRound(0);
+}
+
+function startRound(idx) {
+  hostState.roundIdx = idx;
+  hostState.qIdx = 0;
+  // Reset streaks between rounds
+  for (const p of hostState.players.values()) p.streak = 0;
+  hostState.phase = 'roundIntro';
+  const r = ROUNDS[idx];
+  broadcast({type: 'roundStart', name: r.name, tag: r.tag, line: r.line, num: idx + 1, total: ROUNDS.length});
+  renderHostRoundIntro();
+}
+
+function showQuestion(qIdx) {
+  hostState.qIdx = qIdx;
+  hostState.answers.clear();
+  hostState.questionStartTime = Date.now();
+  hostState.phase = 'question';
+  const r = ROUNDS[hostState.roundIdx];
+  broadcast({
+    type: 'question',
+    questionNum: qIdx + 1,
+    totalInRound: r.questions.length,
+    timeLimit: TIME_LIMIT_MS,
+    isKO: hostState.roundIdx === ROUNDS.length - 1,
+  });
+  renderHostQuestion();
+  if (hostState.questionTimer) clearTimeout(hostState.questionTimer);
+  hostState.questionTimer = setTimeout(() => {
+    if (hostState.phase === 'question') endQuestion();
+  }, TIME_LIMIT_MS + 500);     // small grace period
+}
+
+function forceEndQuestion() {
+  if (hostState.phase === 'question') endQuestion();
+}
+
+function endQuestion() {
+  if (hostState.phase !== 'question') return;
+  if (hostState.questionTimer) clearTimeout(hostState.questionTimer);
+  hostState.phase = 'reveal';
+
+  const r = ROUNDS[hostState.roundIdx];
+  const q = r.questions[hostState.qIdx];
+  const isKO = hostState.roundIdx === ROUNDS.length - 1;
+
+  // Calculate scoring per player
+  for (const p of hostState.players.values()) {
+    if (!p.joined) continue;
+    const ans = hostState.answers.get(p.peerId);
+    let gained = 0;
+    let isCorrect = false;
+    if (ans && ans.optionIdx === q.correct) {
+      isCorrect = true;
+      const ratio = Math.max(0, Math.min(1, 1 - ans.timeMs / TIME_LIMIT_MS));
+      gained = Math.round(MIN_PTS_CORRECT + (MAX_PTS - MIN_PTS_CORRECT) * ratio);
+      if (isKO) gained *= 2;
+      p.streak += 1;
+      if (p.streak >= STREAK_THRESHOLD) gained += STREAK_BONUS;
+      if (p.streak > p.bestStreak) p.bestStreak = p.streak;
+    } else {
+      // Wrong or no answer = breaks streak, 0 points
+      p.streak = 0;
+    }
+    p.score += gained;
+    if (ans) ans.gainedPoints = gained;
+    if (ans) ans.isCorrect = isCorrect;
+  }
+
+  // Send personalised reveal to each player
+  broadcastIndividual(p => {
+    if (!p.joined) return null;
+    const ans = hostState.answers.get(p.peerId);
+    return {
+      type: 'reveal',
+      correctIdx: q.correct,
+      yourAnswer: ans ? ans.optionIdx : null,
+      yourGained: ans ? ans.gainedPoints || 0 : 0,
+      yourScore: p.score,
+      yourCorrect: ans ? !!ans.isCorrect : false,
+      yourStreak: p.streak,
+    };
+  });
+
+  renderHostReveal();
+}
+
+function showRoundEnd() {
+  hostState.phase = 'roundEnd';
+  const sorted = [...hostState.players.values()].filter(p => p.joined).sort((a, b) => b.score - a.score);
+  broadcast({type: 'leaderboard', sorted: sorted.map(p => ({
+    peerId: p.peerId, name: p.name, score: p.score, color: p.color
+  }))});
+  renderHostRoundEnd();
+  ringBell(); setTimeout(ringBell, 600);
+}
+
+function nextRound() {
+  if (hostState.roundIdx + 1 >= ROUNDS.length) {
+    showFinal();
+  } else {
+    startRound(hostState.roundIdx + 1);
+  }
+}
+
+function showFinal() {
+  hostState.phase = 'champion';
+  const sorted = [...hostState.players.values()].filter(p => p.joined).sort((a, b) => b.score - a.score);
+  broadcast({
+    type: 'final',
+    sorted: sorted.map((p, i) => ({
+      peerId: p.peerId, name: p.name, score: p.score, color: p.color,
+      bestStreak: p.bestStreak, place: i + 1
+    }))
+  });
+  renderHostChampion();
+}
+
+function getLeader() {
+  return [...hostState.players.values()].filter(p => p.joined).sort((a, b) => b.score - a.score)[0] || {name: '?', score: 0};
+}
+
+function resetHost() {
+  if (!confirm('Reset and start a new fight night? Current scores will be lost.')) return;
+  // Tell all players the game is over — give the message a moment to send
+  broadcast({type: 'reset'});
+  setTimeout(() => {
+    try { hostState.peer.destroy(); } catch(e){}
+    localStorage.removeItem(STORAGE_HOST);
+    location.reload();
+  }, 250);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PLAYER FLOW
+// ═══════════════════════════════════════════════════════════════════════════
+const playerState = {
+  phase: 'connecting',  // connecting | nameEntry | lobby | question | locked | reveal | leaderboard | final | error
+  hostCode: null,
+  hostId: null,
+  conn: null,
+  peer: null,
+  name: '',
+  score: 0,
+  color: '#d4a72c',
+  questionStartTime: 0,
+  myAnswer: null,
+  questionData: null,
+  revealData: null,
+  errorMsg: null,
+};
+
+function initPlayer(code) {
+  document.body.classList.add('player');
+  playerState.hostCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+  playerState.hostId = PEER_PREFIX + playerState.hostCode;
+  renderPlayerConnecting();
+
+  try {
+    playerState.peer = new Peer({ debug: 0 });
+  } catch (e) {
+    playerState.errorMsg = 'Could not initialise networking. Try a different browser.';
+    return renderPlayerError();
+  }
+
+  playerState.peer.on('open', () => {
+    const conn = playerState.peer.connect(playerState.hostId, { reliable: true });
+    playerState.conn = conn;
+
+    // Connection timeout
+    const timeout = setTimeout(() => {
+      if (playerState.phase === 'connecting') {
+        playerState.errorMsg = 'Couldn\'t reach the host. Check the room code or QR.';
+        renderPlayerError();
+      }
+    }, 10000);
+
+    conn.on('open', () => {
+      clearTimeout(timeout);
+      playerState.phase = 'nameEntry';
+      renderPlayerNameEntry();
+    });
+    conn.on('data', data => handleHostMessage(data));
+    conn.on('close', () => {
+      if (playerState.phase !== 'final' && playerState.phase !== 'error') {
+        playerState.errorMsg = 'Connection to host lost.';
+        renderPlayerError();
+      }
+    });
+    conn.on('error', err => {
+      console.error('Conn error:', err);
+    });
+  });
+
+  playerState.peer.on('error', err => {
+    if (err.type === 'peer-unavailable') {
+      playerState.errorMsg = 'Host not found. Check the QR code or room code.';
+    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+      playerState.errorMsg = 'Connection error. Check your internet.';
+    } else {
+      playerState.errorMsg = 'Connection error: ' + (err.type || 'unknown');
+    }
+    renderPlayerError();
+  });
+}
+
+function handleHostMessage(data) {
+  if (data.type === 'welcome') {
+    playerState.color = data.color;
+    document.documentElement.style.setProperty('--corner-color', data.color);
+  } else if (data.type === 'rejected') {
+    playerState.errorMsg = data.reason || 'Rejected by host.';
+    renderPlayerError();
+  } else if (data.type === 'roundStart') {
+    playerState.phase = 'roundIntro';
+    renderPlayerRoundIntro(data);
+  } else if (data.type === 'question') {
+    playerState.phase = 'question';
+    playerState.questionStartTime = Date.now();
+    playerState.questionData = data;
+    playerState.myAnswer = null;
+    renderPlayerQuestion(data);
+  } else if (data.type === 'answerAck') {
+    // already locked in our UI
+  } else if (data.type === 'reveal') {
+    playerState.phase = 'reveal';
+    playerState.revealData = data;
+    playerState.score = data.yourScore;
+    renderPlayerReveal(data);
+  } else if (data.type === 'leaderboard') {
+    playerState.phase = 'leaderboard';
+    renderPlayerLeaderboard(data.sorted);
+  } else if (data.type === 'final') {
+    playerState.phase = 'final';
+    renderPlayerFinal(data.sorted);
+  } else if (data.type === 'reset') {
+    playerState.errorMsg = 'Host ended the fight.';
+    renderPlayerError();
+  }
+}
+
+function submitAnswer(optionIdx) {
+  if (playerState.myAnswer !== null) return;
+  if (playerState.phase !== 'question') return;
+  playerState.myAnswer = optionIdx;
+  const timeMs = Date.now() - playerState.questionStartTime;
+  try {
+    playerState.conn.send({type: 'answer', optionIdx, timeMs});
+  } catch(e){}
+  playerState.phase = 'locked';
+  renderPlayerLocked(optionIdx);
+}
+
+// ─────────── PLAYER RENDERS ───────────
+function renderPlayerConnecting() {
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-join">
+        <h1>JOINING<br><em>FIGHT NIGHT</em></h1>
+        <div class="sub">Room: ${esc(playerState.hostCode)}</div>
+        <div class="spinner"></div>
+        <p class="p-status">Connecting to the host…</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerError() {
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-join">
+        <h1>NO<br><em>CONNECTION</em></h1>
+        <p class="p-status error">${esc(playerState.errorMsg || 'Unknown error')}</p>
+        <button class="btn ghost" onclick="location.reload()" style="margin-top:20px">↺ TRY AGAIN</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerNameEntry() {
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-join">
+        <h1>YOU'RE<br><em>IN.</em></h1>
+        <div class="sub">Pick your fighter name</div>
+        <input type="text" class="name-input" id="nameInput"
+          placeholder="YOUR NAME"
+          maxlength="14"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters" />
+        <button class="btn" id="joinBtn">★ ENTER THE RING ★</button>
+        <p class="p-status">14 characters max · A–Z, 0–9</p>
+      </div>
+    </div>
+  `;
+  const inp = document.getElementById('nameInput');
+  inp.focus();
+  const submit = () => {
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    playerState.name = name.toUpperCase().slice(0, 14);
+    try {
+      playerState.conn.send({type: 'join', name: playerState.name});
+    } catch(e){}
+    playerState.phase = 'lobby';
+    renderPlayerLobby();
+  };
+  document.getElementById('joinBtn').onclick = submit;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+function renderPlayerLobby() {
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-lobby">
+        <div class="corner-pill" style="background:${playerState.color}">YOU</div>
+        <div class="my-fighter">${esc(playerState.name)}</div>
+        <div class="lobby-msg">Wait for the bell.<br>Eyes up to the screen.</div>
+        <div class="spinner"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerRoundIntro(data) {
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-lobby">
+        <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.4em;color:var(--gold);font-size:0.95rem;margin-bottom:8px">★ ${esc(data.tag)} ★</div>
+        <div class="my-fighter" style="font-size:clamp(2rem,9vw,3rem)">${esc(data.name)}</div>
+        <div class="lobby-msg" style="margin-top:24px">Get ready, ${esc(playerState.name)}.</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerQuestion(data) {
+  // Player sees ONLY 4 colored buttons, no question text
+  const letters = ['A','B','C','D'];
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-topbar">
+        <div class="my-name" style="--corner-color:${playerState.color}">${esc(playerState.name)}</div>
+        <div class="my-score">Q ${data.questionNum}/${data.totalInRound} · <strong>${playerState.score}</strong></div>
+      </div>
+      <div class="p-q" id="pQ">
+        ${letters.map(l => `<button class="p-opt" data-letter="${l}" data-idx="${l.charCodeAt(0)-65}" aria-label="Option ${l}">${l}</button>`).join('')}
+      </div>
+      <div class="p-timer"><div class="p-timer-fill" id="pTimerFill"></div></div>
+    </div>
+  `;
+  document.querySelectorAll('.p-opt').forEach(btn => {
+    btn.addEventListener('click', () => submitAnswer(parseInt(btn.dataset.idx)));
+  });
+
+  // Animate timer
+  const fill = document.getElementById('pTimerFill');
+  const startTime = playerState.questionStartTime;
+  function tick() {
+    if (playerState.phase !== 'question') return;
+    const remaining = Math.max(0, 1 - (Date.now() - startTime) / data.timeLimit);
+    if (fill) fill.style.transform = `scaleX(${remaining})`;
+    if (remaining > 0) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderPlayerLocked(optionIdx) {
+  const letter = String.fromCharCode(65 + optionIdx);
+  const colorMap = ['var(--opt-a)','var(--opt-b)','var(--opt-c)','var(--opt-d)'];
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-topbar">
+        <div class="my-name" style="--corner-color:${playerState.color}">${esc(playerState.name)}</div>
+        <div class="my-score"><strong>${playerState.score}</strong> PTS</div>
+      </div>
+      <div class="p-locked" style="--locked-color:${colorMap[optionIdx]}">
+        <div class="p-locked-msg">LOCKED IN</div>
+        <div class="p-locked-letter">${letter}</div>
+        <div class="p-locked-sub">Eyes up to the screen ↑</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerReveal(data) {
+  const isCorrect = data.yourCorrect;
+  const gained = data.yourGained || 0;
+  const onFire = data.yourStreak >= STREAK_THRESHOLD;
+  const noAnswer = data.yourAnswer === null;
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-topbar">
+        <div class="my-name" style="--corner-color:${playerState.color}">${esc(playerState.name)}</div>
+        <div class="my-score"><strong>${playerState.score}</strong> PTS</div>
+      </div>
+      <div class="p-reveal ${isCorrect ? 'right' : 'wrong'}">
+        <div class="p-reveal-headline">
+          ${isCorrect ? 'BODY SHOT!' : (noAnswer ? 'TOO SLOW!' : 'MISSED!')}
+        </div>
+        ${isCorrect ? `<div class="p-reveal-points">+${gained}</div>` : ''}
+        <div class="p-reveal-newscore">SCORE: ${playerState.score}</div>
+        ${onFire && isCorrect ? `<div class="p-reveal-streak">🔥 ${data.yourStreak}-STREAK · ON FIRE</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerLeaderboard(sorted) {
+  // Find my place
+  const myEntry = sorted.find(p => p.name === playerState.name);
+  const myPlace = sorted.findIndex(p => p.name === playerState.name) + 1;
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-topbar">
+        <div class="my-name" style="--corner-color:${playerState.color}">${esc(playerState.name)}</div>
+        <div class="my-score"><strong>${playerState.score}</strong> PTS</div>
+      </div>
+      <div class="p-lb">
+        <h2>STANDINGS</h2>
+        <div class="my-place">YOU'RE IN ${myPlace === 1 ? '1ST' : myPlace === 2 ? '2ND' : myPlace === 3 ? '3RD' : myPlace + 'TH'}</div>
+        ${sorted.map((p, i) => `
+          <div class="p-lb-row ${p.name === playerState.name ? 'you' : ''}" style="--corner-color:${p.color}">
+            <div class="lb-pl">${i + 1}</div>
+            <div class="lb-nm">${esc(p.name)}</div>
+            <div class="lb-pts">${p.score}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerFinal(sorted) {
+  const me = sorted.find(p => p.name === playerState.name);
+  const myPlace = me ? me.place : 0;
+  const isChamp = myPlace === 1;
+  app.innerHTML = `
+    <div class="p-screen">
+      <div class="p-topbar">
+        <div class="my-name" style="--corner-color:${playerState.color}">${esc(playerState.name)}</div>
+        <div class="my-score"><strong>${playerState.score}</strong> PTS</div>
+      </div>
+      <div class="p-lb" style="justify-content:center; align-items:center; text-align:center">
+        ${isChamp ? `
+          <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.4em;color:var(--gold-bright);font-size:1rem;margin-bottom:14px">★ CHAMPION ★</div>
+          <h2 style="font-size:clamp(3rem,14vw,5rem); color:var(--gold-bright); margin-bottom:8px">YOU<br>WON.</h2>
+          <div style="font-family:'Permanent Marker',cursive;color:var(--paper);font-size:1.2rem;margin-bottom:24px">— UNDISPUTED —</div>
+        ` : `
+          <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.4em;color:${myPlace===2?'#c0c0c0':myPlace===3?'#cd7f32':'var(--paper-dim)'};font-size:1rem;margin-bottom:14px">
+            ★ FIGHT'S OVER ★
+          </div>
+          <h2 style="font-size:clamp(3rem,14vw,5rem); margin-bottom:8px">
+            ${myPlace}${myPlace === 2 ? 'ND' : myPlace === 3 ? 'RD' : 'TH'}<br>PLACE
+          </h2>
+          <div style="font-family:'Permanent Marker',cursive;color:var(--gold-bright);font-size:1.1rem;margin-bottom:24px">${esc(playerState.name)} · ${playerState.score} pts</div>
+        `}
+        <div style="width:100%; max-width:480px">
+          ${sorted.map((p, i) => `
+            <div class="p-lb-row ${p.name === playerState.name ? 'you' : ''}" style="--corner-color:${p.color}">
+              <div class="lb-pl">${i + 1}</div>
+              <div class="lb-nm">${esc(p.name)}</div>
+              <div class="lb-pts">${p.score}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Expose handlers used by inline onclicks
+window.forceEndQuestion = forceEndQuestion;
+window.resetHost = resetHost;
+</script>
+</body>
+</html>
